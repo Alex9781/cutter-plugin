@@ -3,6 +3,7 @@ import pyqbdi
 import sys
 import struct
 import atexit
+import random
 
 ###
 
@@ -43,10 +44,10 @@ def get_modules():
 
 # write coverage (in drcov format)
 def writeCoverage(stats):
-    filename = "a.cov"
-    with open(filename, "w") as fp:
+    filename = "C:\\Users\\alexz\\AppData\\Roaming\\rizin\\cutter\\plugins\\python\\cutter-plugin\\a.cov"
+    with open(filename, "w", newline='') as fp:
         # write header
-        fp.write("DRCOV VERSION: 2\n")
+        fp.write("DRCOV VERSION: 3\n")
         fp.write("DRCOV FLAVOR: drcov\n")
         modules = get_modules()
         fp.write("Module Table: version 2, count %u\n" % len(modules))
@@ -89,7 +90,7 @@ def pyqbdipreload_on_run(vm, start, stop):
     # add callback on Basic blocks
     vm.addVMEventCB(pyqbdi.BASIC_BLOCK_ENTRY, vmCB, stats)
     # write coverage on exit
-    #atexit.register(writeCoverage, stats)
+    atexit.register(writeCoverage, stats)
     # run program
     vm.run(start, stop)
 
@@ -101,23 +102,14 @@ def insnCB(vm, gpr, fpr, data):
     #print("0x{:x}: {}".format(instAnalysis.address, instAnalysis.disassembly))
     return pyqbdi.CONTINUE
 
-# lib_path = sys.argv[1]
-# func_name = sys.argv[2]
+lib_path = sys.argv[1]
+func_name = sys.argv[2]
 
-# print(lib_path)
-# print(func_name)
-
-# 140711912215024
-# 6442455504
-
-lib_path = "C:\\Users\\alexz\\Desktop\\Dll1\\x64\\Release\\Dll1.dll"
-func_name = "test_func2"
+# lib_path = "C:\\Users\\alexz\\Desktop\\Dll1\\x64\\Release\\Dll1.dll"
+# func_name = "test_func3"
 
 lib = ctypes.cdll.LoadLibrary(lib_path)
 funcPtr = ctypes.cast(lib[func_name], ctypes.c_void_p).value
-
-# print(hex(ctypes.cast(lib._handle, ctypes.c_void_p).value))
-#print(hex(funcPtr))
 
 vm = pyqbdi.VM()
 
@@ -131,15 +123,19 @@ vm.recordMemoryAccess(pyqbdi.MEMORY_READ_WRITE)
 vm.addCodeCB(pyqbdi.PREINST, insnCB, None)
 
 # # Cast double arg to long and set FPR
-# arg = 1.0
-# carg = struct.pack('<d', arg)
+# fpr = vm.getFPRState() 
+#carg = struct.pack('<I', arg) # !!! https://docs.python.org/3/library/struct.html#format-characters
+# fpr.xmm0 = 1.0
+
+
 gpr = vm.getGPRState()
-gpr.rcx = 1
+gpr.rcx = random.randint(0, 10)
+gpr.rdx = struct.pack('<s', bytes("qweqwe", "utf-8"))
 
 pyqbdi.simulateCall(state, 0x42424242)
 stats = pyqbdipreload_on_run(vm, funcPtr, 0x42424242)
-writeCoverage(stats)
-# success = vm.run(funcPtr, 0x42424242)
+
+#success = vm.run(funcPtr, 0x42424242)
 
 # # # Retrieve output FPR state
 # # fpr = vm.getFPRState()
@@ -148,3 +144,5 @@ writeCoverage(stats)
 # # print("%f (python) vs %f (qbdi)" % (math.sin(arg), res))
 
 pyqbdi.alignedFree(addr)
+
+sys.exit(0)

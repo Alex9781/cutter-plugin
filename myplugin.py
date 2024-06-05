@@ -1,9 +1,10 @@
 import cutter
 import subprocess
+import os
 # import re
 
 from PySide2.QtCore import QObject, SIGNAL # type: ignore
-from PySide2.QtWidgets import QAction, QLabel # type: ignore
+from PySide2.QtWidgets import QAction, QLabel, QPushButton # type: ignore
 
 class MyDockWidget(cutter.CutterDockWidget): # type: ignore
     def __init__(self, parent, action):
@@ -41,7 +42,7 @@ class MyDockWidget(cutter.CutterDockWidget): # type: ignore
             if func['flagname'] == flag: func_name = func['realname']
 
         if func_name:
-            res = subprocess.run(["python", "c:\\Users\\alexz\\Desktop\\univer\\Diplom\\plugin\\fuzzer.py", file_path, func_name], capture_output=True)
+            res = subprocess.run(["python", "C:\\Users\\alexz\\AppData\\Roaming\\rizin\\cutter\\plugins\\python\\cutter-plugin\\fuzzer.py", file_path, func_name], capture_output=True)
             print(res.stdout)
         else:
             # в данном случае функции нет в таблице экспрота, значит сначала вызывается модуль convert_to_dll
