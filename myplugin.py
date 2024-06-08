@@ -1,7 +1,6 @@
 import cutter
 import subprocess
 import os
-# import re
 
 from PySide2.QtCore import QObject, SIGNAL # type: ignore
 from PySide2.QtWidgets import QAction, QLabel, QPushButton # type: ignore
@@ -33,22 +32,26 @@ class MyDockWidget(cutter.CutterDockWidget): # type: ignore
         exports = cutter.cmdj("iEj") # type: ignore
         file_path = cutter.cmdj("ij")["core"]["file"] # type: ignore
 
-        # скорее всего не понадобится 
-        # is_exe = re.search(r'^.*\.(exe)$', file_path)
-        # is_dll = re.search(r'^.*\.(dll)$', file_path)
-
         func_name = ""
         for func in exports:
             if func['flagname'] == flag: func_name = func['realname']
 
+        working_directory = os.getenv("APPDATA", "null") + "\\rizin\\cutter\\plugins\\python\\cutter-plugin\\"
+
         if func_name:
-            res = subprocess.run(["python", "C:\\Users\\alexz\\AppData\\Roaming\\rizin\\cutter\\plugins\\python\\cutter-plugin\\fuzzer.py", file_path, func_name], capture_output=True)
+            res = subprocess.run(["python", working_directory + "fuzzer.py", "1", file_path, func_name, "0"], capture_output=True)
             print(res.stdout)
         else:
-            # в данном случае функции нет в таблице экспрота, значит сначала вызывается модуль convert_to_dll
-            # по идее, даже если этот файл и так dll то модуль просто вернёт нам необходимый адрес
-            # но этот момент, как мне кажется можно опустить
-            pass
+            # print(cutter.cmd("s")) #type: ignore
+            # print(int(cutter.cmd("s"), 0)) #type: ignore
+
+            print("############")
+
+            offset = int(cutter.cmd("s"), 0) - 0x140000000 #type: ignore
+            # print(hex(offset))
+            res = subprocess.run(["python", working_directory + "fuzzer.py", "0", file_path, "null", str(offset)], capture_output=True)
+            print(res)
+
 
 
 class MyCutterPlugin(cutter.CutterPlugin): # type: ignore

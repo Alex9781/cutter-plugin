@@ -4,6 +4,10 @@ import sys
 import struct
 import atexit
 import random
+import os
+
+from convert_exe_to_dll import convert
+working_directory = os.getenv("APPDATA", "null") + "\\rizin\\cutter\\plugins\\python\\cutter-plugin\\"
 
 ###
 
@@ -44,7 +48,7 @@ def get_modules():
 
 # write coverage (in drcov format)
 def writeCoverage(stats):
-    filename = "C:\\Users\\alexz\\AppData\\Roaming\\rizin\\cutter\\plugins\\python\\cutter-plugin\\a.cov"
+    filename = working_directory + "a.cov"
     with open(filename, "w", newline='') as fp:
         # write header
         fp.write("DRCOV VERSION: 3\n")
@@ -102,14 +106,19 @@ def insnCB(vm, gpr, fpr, data):
     #print("0x{:x}: {}".format(instAnalysis.address, instAnalysis.disassembly))
     return pyqbdi.CONTINUE
 
-lib_path = sys.argv[1]
-func_name = sys.argv[2]
+is_dll = sys.argv[1]
+lib_path = sys.argv[2]
+func_name = sys.argv[3]
+func_offset = sys.argv[4]
 
-# lib_path = "C:\\Users\\alexz\\Desktop\\Dll1\\x64\\Release\\Dll1.dll"
-# func_name = "test_func3"
 
-lib = ctypes.cdll.LoadLibrary(lib_path)
-funcPtr = ctypes.cast(lib[func_name], ctypes.c_void_p).value
+if is_dll == "1":
+    lib = ctypes.cdll.LoadLibrary(lib_path)
+    funcPtr = ctypes.cast(lib[func_name], ctypes.c_void_p).value
+else:
+    print(lib_path)
+    funcPtr = convert(lib_path, int(func_offset))
+
 
 vm = pyqbdi.VM()
 
@@ -122,26 +131,27 @@ vm.recordMemoryAccess(pyqbdi.MEMORY_READ_WRITE)
 
 vm.addCodeCB(pyqbdi.PREINST, insnCB, None)
 
+
 # # Cast double arg to long and set FPR
 # fpr = vm.getFPRState() 
 #carg = struct.pack('<I', arg) # !!! https://docs.python.org/3/library/struct.html#format-characters
 # fpr.xmm0 = 1.0
 
 
-gpr = vm.getGPRState()
-gpr.rcx = random.randint(0, 10)
-gpr.rdx = struct.pack('<s', bytes("qweqwe", "utf-8"))
+stats = dict(addrs=set(), sizes=dict())
+vm.addVMEventCB(pyqbdi.BASIC_BLOCK_ENTRY, vmCB, stats)
+atexit.register(writeCoverage, stats)
 
-pyqbdi.simulateCall(state, 0x42424242)
-stats = pyqbdipreload_on_run(vm, funcPtr, 0x42424242)
+for i in range(0, 50):
+    gpr = vm.getGPRState()
+    gpr.rax = random.randint(0, 20)
+    gpr.rcx = random.randint(0, 20)
+    gpr.rdx = random.randint(0, 20)
 
-#success = vm.run(funcPtr, 0x42424242)
+    pyqbdi.simulateCall(state, 0x42424242)
+    vm.run(funcPtr, 0x42424242)
 
-# # # Retrieve output FPR state
-# # fpr = vm.getFPRState()
-# # # Cast long arg to double
-# # res = struct.unpack('<d', fpr.xmm0[:8])[0]
-# # print("%f (python) vs %f (qbdi)" % (math.sin(arg), res))
+#stats = pyqbdipreload_on_run(vm, funcPtr, 0x42424242)
 
 pyqbdi.alignedFree(addr)
 

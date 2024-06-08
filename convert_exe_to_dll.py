@@ -1,39 +1,39 @@
 import ctypes
 import pefile
-import os, sys
+import os
 
-# import shutil
-# shutil.copyfile("ConsoleApplication1.exe", "ConsoleApplication1.dll")
+working_directory = os.getenv("APPDATA", "null") + "\\rizin\\cutter\\plugins\\python\\cutter-plugin\\" 
 
-pe2dll=pefile.PE("ConsoleApplication1.exe", fast_load=True)
-print(hex(pe2dll.FILE_HEADER.Characteristics))
-pe2dll.FILE_HEADER.Characteristics=0x20
-rvaEntry = pe2dll.OPTIONAL_HEADER.AddressOfEntryPoint
-# for i in pe2dll.sections:
-#     print(i)
-textsection = filter(lambda x: b'.text' in x.Name, pe2dll.sections)
-textsection = list(textsection)
-# print(f"textsection = {list(textsection)[0]}")
-textVA = textsection[0].VirtualAddress
-textRaw = textsection[0].PointerToRawData
+def convert(path: str, offset: int):
+    pe2dll=pefile.PE(path, fast_load=True)
 
-# print(pe2dll.get_offset_from_rva(rvaEntry))
-rawEntry = rvaEntry - textVA + textRaw
-print(rawEntry)
+    pe2dll.FILE_HEADER.Characteristics=0x2022 # type: ignore
+    rvaEntry = pe2dll.OPTIONAL_HEADER.AddressOfEntryPoint # type: ignore
 
-pe2dll.write(filename="ConsoleApplication1.dll")
+    textsection = filter(lambda x: b'.text' in x.Name, pe2dll.sections)
+    textsection = list(textsection)
 
+    textVA = textsection[0].VirtualAddress
+    textRaw = textsection[0].PointerToRawData
 
-with open("ConsoleApplication1.dll", "r+b") as dllFile:
-    dllFile.seek(rawEntry)
-    dllFile.write(bytes.fromhex('b801000000c20c00'))
+    # print(pe2dll.get_offset_from_rva(rvaEntry))   
+    rawEntry = rvaEntry - textVA + textRaw
+    #print(rawEntry)
+
+    pe2dll.write(filename=working_directory + "converted.dll")
 
 
-#КОНСТАНТА СМЕЩЕНИЯ ФУКНЦИИ - ИЗ ДИЗАССЕМБЛЕРА
+    with open(working_directory + "converted.dll", "r+b") as dllFile:
+        dllFile.seek(rawEntry)
+        dllFile.write(bytes.fromhex('b801000000c3'))
 
 
-lib = ctypes.cdll.LoadLibrary("ConsoleApplication1.dll")
-print(hex(ctypes.cast(lib._handle, ctypes.c_void_p).value))
+    lib = ctypes.cdll.LoadLibrary(working_directory + "converted.dll")
 
-#КОНСТАНТА СМЕЩЕНИЯ ФУКНЦИИ - ИЗ ДИЗАССЕМБЛЕРА
+    # print("---------------------------")
+    # print(hex(ctypes.cast(lib._handle, ctypes.c_void_p).value + offset))
+
+    return ctypes.cast(lib._handle, ctypes.c_void_p).value + offset  # type: ignore
+
+    #print(hex(ctypes.cast(lib._handle, ctypes.c_void_p).value))
 

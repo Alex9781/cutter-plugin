@@ -161,3 +161,7 @@ cython_debug/
 
 *.cov
 .vscode
+*.dll
+*.exe
+x64
+.vs
