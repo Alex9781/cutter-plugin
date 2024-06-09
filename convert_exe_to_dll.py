@@ -36,4 +36,3 @@ def convert(path: str, offset: int):
     return ctypes.cast(lib._handle, ctypes.c_void_p).value + offset  # type: ignore
 
     #print(hex(ctypes.cast(lib._handle, ctypes.c_void_p).value))
-
